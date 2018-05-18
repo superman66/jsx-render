@@ -1,0 +1,29 @@
+{
+  "name": "simple-jsx-render",
+  "version": "1.0.0",
+  "description": "a simple JSX DOM render",
+  "main": "index.js",
+  "scripts": {
+    "build": "rm -rf dist && babel index.js -d dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/superman66/simple-jsx-render.git"
+  },
+  "keywords": [
+    "jsx",
+    "render"
+  ],
+  "author": "superman66",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/superman66/simple-jsx-render/issues"
+  },
+  "homepage": "https://github.com/superman66/simple-jsx-render#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-preset-env": "^1.7.0"
+  }
+}

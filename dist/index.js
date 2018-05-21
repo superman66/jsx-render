@@ -28,6 +28,8 @@ var VirtualDOM = function () {
       }
       var element = document.createElement(vnode.type);
       this.setProps(element, vnode.props);
+      // 单独为 事件设置属性
+      this.addEventListeners(element, vnode.props);
       vnode.children.forEach(function (child) {
         return element.appendChild(_this.createElement(child));
       });
@@ -69,14 +71,16 @@ var VirtualDOM = function () {
 
     /**
      * 判断节点是否改变
-     * @param {*} node1
-     * @param {*} node2
+     * @param {*} newNode
+     * @param {*} oldNode
      */
 
   }, {
     key: 'changed',
-    value: function changed(node1, node2) {
-      return (typeof node1 === 'undefined' ? 'undefined' : _typeof(node1)) !== (typeof node2 === 'undefined' ? 'undefined' : _typeof(node2)) || typeof node1 === 'string' && node1 !== node2 || node1.type !== node2.type;
+    value: function changed(newNode, oldNode) {
+      return (typeof newNode === 'undefined' ? 'undefined' : _typeof(newNode)) !== (typeof oldNode === 'undefined' ? 'undefined' : _typeof(oldNode)) || typeof newNode === 'string' && newNode !== oldNode || newNode.type !== oldNode.type ||
+      // 自定义属性，用于强制更新
+      newNode.props && newNode.props.forceUpdate;
     }
   }, {
     key: 'setProp',
@@ -121,7 +125,7 @@ var VirtualDOM = function () {
   }, {
     key: 'isCustomProp',
     value: function isCustomProp(name) {
-      return false;
+      return this.isEventProps(name) || name === 'forceUpdate';
     }
   }, {
     key: 'removeBooleanProp',
@@ -160,11 +164,41 @@ var VirtualDOM = function () {
   }, {
     key: 'updateProps',
     value: function updateProps($target, newProps) {
+      var _this3 = this;
+
       var oldProps = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
       var props = Object.assign({}, newProps, oldProps);
       Object.keys(props).forEach(function (prop) {
-        updateProp($target, prop, newProps[prop], oldProps[prop]);
+        _this3.updateProp($target, prop, newProps[prop], oldProps[prop]);
+      });
+    }
+
+    /**
+     * 判断是否为 Event prop，事件都以 on 开头
+     * @param {*} name
+     */
+
+  }, {
+    key: 'isEventProps',
+    value: function isEventProps(name) {
+      return (/^on/.test(name)
+      );
+    }
+  }, {
+    key: 'extractEventName',
+    value: function extractEventName(name) {
+      return name.slice(2).toLowerCase();
+    }
+  }, {
+    key: 'addEventListeners',
+    value: function addEventListeners($target, props) {
+      var _this4 = this;
+
+      Object.keys(props).forEach(function (prop) {
+        if (_this4.isEventProps(prop)) {
+          $target.addEventListener(_this4.extractEventName(prop), props[prop]);
+        }
       });
     }
   }]);
@@ -179,52 +213,82 @@ function h(type, props) {
     args[_key - 2] = arguments[_key];
   }
 
-  var children = args.length ? (_ref = []).concat.apply(_ref, args) : null;
+  var children = args.length ? (_ref = []).concat.apply(_ref, args) : [];
   return { type: type, props: props || {}, children: children };
 }
 
 var oldItems = ['github', 'facebook', 'google'];
 var newItems = ['Twitter', 'Gmail', 'Paypal'];
 
-var oldVdom = h(
+/* const oldVdom = <ul>{oldItems.map(item => <li>{item}</li>)}</ul>
+
+const newVdom = (
+   <div>
+    <p>
+      his is an HTML page with a single babel-transpiled JS file and no
+      dependencies. It is rendering DOM via JSX without any frameworks.
+    </p>
+    <p>Simple JSX DOM Render</p> 
+  <ul>{newItems.map(item => <li>{item}</li>)}</ul>
+  </div>
+)
+*/
+
+function log(e) {
+  console.log(e.target.value);
+}
+
+var f = h(
   'ul',
-  null,
-  oldItems.map(function (item) {
-    return h(
-      'li',
-      null,
-      item
-    );
-  })
+  { style: 'list-style: none;' },
+  h(
+    'li',
+    { className: 'item', onClick: function onClick() {
+        return alert('hi!');
+      } },
+    'item 1'
+  ),
+  h(
+    'li',
+    { className: 'item' },
+    h('input', { type: 'checkbox', checked: true }),
+    h('input', { type: 'text', onInput: log })
+  ),
+  h(
+    'li',
+    { forceUpdate: true },
+    'text'
+  )
 );
 
-var newVdom =
-/*   <div>
-  <p>
-    his is an HTML page with a single babel-transpiled JS file and no
-    dependencies. It is rendering DOM via JSX without any frameworks.
-  </p>
-  <p>Simple JSX DOM Render</p> */
-h(
+var g = h(
   'ul',
-  null,
-  newItems.map(function (item) {
-    return h(
-      'li',
-      null,
-      item
-    );
-  })
-)
-// </div>
-;
-
+  { style: 'list-style: none;' },
+  h(
+    'li',
+    { className: 'item item2', onClick: function onClick() {
+        return alert('hi!');
+      } },
+    'item 1'
+  ),
+  h(
+    'li',
+    { style: 'background: red;' },
+    h('input', { type: 'checkbox', checked: false }),
+    h('input', { type: 'text', onInput: log })
+  ),
+  h(
+    'li',
+    { forceUpdate: true },
+    'text'
+  )
+);
 window.onload = function () {
   var app = document.getElementById('app');
   var reload = document.getElementById('reload');
 
-  VirtualDOM.updateElement(app, oldVdom);
+  VirtualDOM.updateElement(app, f);
   reload.addEventListener('click', function () {
-    VirtualDOM.updateElement(app, newVdom, oldVdom);
+    VirtualDOM.updateElement(app, g, f);
   });
 };

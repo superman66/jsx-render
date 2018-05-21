@@ -11,6 +11,8 @@ class VirtualDOM {
     }
     const element = document.createElement(vnode.type)
     this.setProps(element, vnode.props)
+    // 单独为 事件设置属性
+    this.addEventListeners(element, vnode.props)
     vnode.children.forEach(child =>
       element.appendChild(this.createElement(child)),
     )
@@ -55,14 +57,16 @@ class VirtualDOM {
 
   /**
    * 判断节点是否改变
-   * @param {*} node1
-   * @param {*} node2
+   * @param {*} newNode
+   * @param {*} oldNode
    */
-  static changed(node1, node2) {
+  static changed(newNode, oldNode) {
     return (
-      typeof node1 !== typeof node2 ||
-      (typeof node1 === 'string' && node1 !== node2) ||
-      node1.type !== node2.type
+      typeof newNode !== typeof oldNode ||
+      (typeof newNode === 'string' && newNode !== oldNode) ||
+      newNode.type !== oldNode.type ||
+      // 自定义属性，用于强制更新
+      newNode.props && newNode.props.forceUpdate
     )
   }
 
@@ -100,7 +104,7 @@ class VirtualDOM {
   }
 
   static isCustomProp(name) {
-    return false
+    return this.isEventProps(name) || name === 'forceUpdate'
   }
 
   static removeBooleanProp($target, name) {
@@ -135,38 +139,90 @@ class VirtualDOM {
   static updateProps($target, newProps, oldProps = {}) {
     const props = Object.assign({}, newProps, oldProps)
     Object.keys(props).forEach(prop => {
-      updateProp($target, prop, newProps[prop], oldProps[prop])
+      this.updateProp($target, prop, newProps[prop], oldProps[prop])
+    })
+  }
+
+  /**
+   * 判断是否为 Event prop，事件都以 on 开头
+   * @param {*} name
+   */
+  static isEventProps(name) {
+    return /^on/.test(name)
+  }
+
+  static extractEventName(name) {
+    return name.slice(2).toLowerCase()
+  }
+
+  static addEventListeners($target, props) {
+    Object.keys(props).forEach(prop => {
+      if (this.isEventProps(prop)) {
+        $target.addEventListener(this.extractEventName(prop), props[prop])
+      }
     })
   }
 }
 
 function h(type, props, ...args) {
-  let children = args.length ? [].concat(...args) : null
+  let children = args.length ? [].concat(...args) : []
   return { type, props: props || {}, children }
 }
 
 const oldItems = ['github', 'facebook', 'google']
 const newItems = ['Twitter', 'Gmail', 'Paypal']
 
-const oldVdom = <ul>{oldItems.map(item => <li>{item}</li>)}</ul>
+/* const oldVdom = <ul>{oldItems.map(item => <li>{item}</li>)}</ul>
 
 const newVdom = (
-  /*   <div>
+   <div>
     <p>
       his is an HTML page with a single babel-transpiled JS file and no
       dependencies. It is rendering DOM via JSX without any frameworks.
     </p>
-    <p>Simple JSX DOM Render</p> */
+    <p>Simple JSX DOM Render</p> 
   <ul>{newItems.map(item => <li>{item}</li>)}</ul>
-  // </div>
+  </div>
+)
+*/
+
+function log(e) {
+  console.log(e.target.value)
+}
+
+const f = (
+  <ul style="list-style: none;">
+    <li className="item" onClick={() => alert('hi!')}>
+      item 1
+    </li>
+    <li className="item">
+      <input type="checkbox" checked={true} />
+      <input type="text" onInput={log} />
+    </li>
+    {/* this node will always be updated */}
+    <li forceUpdate={true}>text</li>
+  </ul>
 )
 
+const g = (
+  <ul style="list-style: none;">
+    <li className="item item2" onClick={() => alert('hi!')}>
+      item 1
+    </li>
+    <li style="background: red;">
+      <input type="checkbox" checked={false} />
+      <input type="text" onInput={log} />
+    </li>
+    {/* this node will always be updated */}
+    <li forceUpdate={true}>text</li>
+  </ul>
+)
 window.onload = function() {
   const app = document.getElementById('app')
   const reload = document.getElementById('reload')
 
-  VirtualDOM.updateElement(app, oldVdom)
+  VirtualDOM.updateElement(app, f)
   reload.addEventListener('click', () => {
-    VirtualDOM.updateElement(app, newVdom, oldVdom)
+    VirtualDOM.updateElement(app, g, f)
   })
 }

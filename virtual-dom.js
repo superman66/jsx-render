@@ -1,4 +1,3 @@
-/** @jsx h */
 class VirtualDOM {
   /**
    * 创建 Element
@@ -39,7 +38,7 @@ class VirtualDOM {
     }
     // diff children, 递归调用 updateElement 判断 children 是否变化
     else if (newNode.type) {
-      this.updateProps($parent.childNodes[index], newNode.props, oldNode.props)
+      upadteProps($parent.childNodes[index], newNode.props, oldNode.props)
       const newLength = newNode.children.length
       const oldLength = oldNode.children.length
       for (let i = 0; i < newLength || i < oldLength; i++) {
@@ -132,7 +131,7 @@ class VirtualDOM {
     }
   }
 
-  static updateProps($target, newProps, oldProps = {}) {
+  upadteProps($target, newProps, oldProps = {}) {
     const props = Object.assign({}, newProps, oldProps)
     Object.keys(props).forEach(prop => {
       updateProp($target, prop, newProps[prop], oldProps[prop])
@@ -140,33 +139,4 @@ class VirtualDOM {
   }
 }
 
-function h(type, props, ...args) {
-  let children = args.length ? [].concat(...args) : null
-  return { type, props: props || {}, children }
-}
-
-const oldItems = ['github', 'facebook', 'google']
-const newItems = ['Twitter', 'Gmail', 'Paypal']
-
-const oldVdom = <ul>{oldItems.map(item => <li>{item}</li>)}</ul>
-
-const newVdom = (
-  /*   <div>
-    <p>
-      his is an HTML page with a single babel-transpiled JS file and no
-      dependencies. It is rendering DOM via JSX without any frameworks.
-    </p>
-    <p>Simple JSX DOM Render</p> */
-  <ul>{newItems.map(item => <li>{item}</li>)}</ul>
-  // </div>
-)
-
-window.onload = function() {
-  const app = document.getElementById('app')
-  const reload = document.getElementById('reload')
-
-  VirtualDOM.updateElement(app, oldVdom)
-  reload.addEventListener('click', () => {
-    VirtualDOM.updateElement(app, newVdom, oldVdom)
-  })
-}
+export default VirtualDOM
